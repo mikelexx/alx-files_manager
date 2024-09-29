@@ -24,7 +24,7 @@ export default class UsersController{
         return res.status(201).json({'id': dbInsertFeedback.insertedId, 'email': email});
       }
       else{
-        return res.status(400).send(`Already exist`);
+        return res.status(400).send({error: 'Already exist' });
       }
 
     } catch(err){
