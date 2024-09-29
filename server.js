@@ -7,6 +7,7 @@ if(typeof PORT  === 'undefined'){
 }
 
 const app = express();
+app.use(express.json());
 app.use(router);
 app.listen(PORT, ()=>console.log(`server listening on port ${PORT}`));
 

@@ -4,7 +4,7 @@ export default class AppController{
   static getStatus(_, res){
     const isDbAlive = dbClient.isAlive();
     const isRedisAlive = redisClientInstance.isAlive();
-    res.status(200).json({ "redis": isDbAlive, "db": isRedisAlive });
+    res.status(200).json({ "redis": isRedisAlive, "db": isDbAlive});
   }
 
   static async getStats(_, res){
