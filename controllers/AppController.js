@@ -2,7 +2,6 @@ import redisClientInstance from '../utils/redis';
 import dbClient from '../utils/db';
 export default class AppController{
   static getStatus(_, res){
-    console.log('AppController.getStats called');
     const isDbAlive = dbClient.isAlive();
     const isRedisAlive = redisClientInstance.isAlive();
     res.status(200).json({ "redis": isDbAlive, "db": isRedisAlive });

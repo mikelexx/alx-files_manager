@@ -1,6 +1,6 @@
 import router from './routes/index';
-const express = require('express');
-const process = require('process');
+import express from 'express';
+import process from 'process';
 let PORT = process.env.PORT;
 if(typeof PORT  === 'undefined'){
   PORT = 5000;
