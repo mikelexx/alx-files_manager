@@ -7,21 +7,20 @@ export default class UsersController{
     const email = req.body.email;
     const password = req.body.password;
 
-    if(typeof email === 'undefined'){
-      return res.status(400).send('Missing email');
+    if(!email){
+      return res.status(400).json({error: 'Missing email' });
     }
-    if(typeof password === 'undefined'){
-      return res.status(400).send('Missing password');
+    if(!password){
+      return res.status(400).send({error: 'Missing password' });
     }
-
     if(!dbClient.isAlive()){
-      return res.status(500).send('DATABASE NOT COONNECTED!');
+      return res.status(500).send({error: 'DATABASE NOT COONNECTED!' });
     }
 
     try{
       const existingUser = await dbClient.client.db().collection('users').findOne({'email': email})
       if(!existingUser){
-        const dbInsertFeedback = await dbClient.client.db().collection('users').insertOne({email: email, password: SHA1(password)});
+        const dbInsertFeedback = await dbClient.client.db().collection('users').insertOne({'email': email, 'password': SHA1(password)});
         return res.status(201).json({'id': dbInsertFeedback.insertedId, 'email': email});
       }
       else{
