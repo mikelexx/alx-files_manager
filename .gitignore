@@ -1,2 +1,5 @@
 manager
 node_modules
+start-server
+babel.config.js
+
