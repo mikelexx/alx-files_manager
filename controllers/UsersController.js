@@ -8,7 +8,6 @@ export default class UsersController{
     const token = req.get('X-Token');
     try{
       const email = await redisClientInstance.get(`auth_${token}`);
-      console.log('email from redis: ', email);
       const existingUser = await dbClient.client.db().collection('users').findOne({'email': email});
       if(!existingUser){
         return res.status(401).json({error: 'Unauthorized'});
