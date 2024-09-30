@@ -1,6 +1,7 @@
 import SHA1 from 'sha1';
 import dbClient from '../utils/db';
 import redisClientInstance from '../utils/redis';
+const { ObjectID } = require('mongodb');
 
 export default class UsersController {
   static async getMe(req, res) {
@@ -9,13 +10,14 @@ export default class UsersController {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     try {
-      const email = await redisClientInstance.get(`auth_${token}`);
-      const existingUser = await dbClient.client.db().collection('users').findOne({ email });
+      const id = await redisClientInstance.get(`auth_${token}`);
+      const existingUser = await dbClient.client.db().collection('users').findOne({ _id: new ObjectID(id)});
       if (!existingUser) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
-      return res.status(200).json({ email, id: existingUser._id });
+      return res.status(200).json({email: existingUser.email, id: existingUser. _id});
     } catch (error) {
+      console.log('we got a problem a tgetMe: ', error);
       return res.status(500).json({ error });
     }
   }

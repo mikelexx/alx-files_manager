@@ -2,6 +2,7 @@ import dbClient from '../utils/db';
 import redisClientInstance from '../utils/redis';
 import SHA1 from 'sha1';
 import {v4 as uuidv4} from 'uuid';
+const { ObjectID } = require('mongodb');
 
 
 export default class AuthController{
@@ -10,7 +11,10 @@ export default class AuthController{
     if(!authorizationCredentials){
       return res.status(401).send({error: 'Unauthorized'});
     }
-    const sessionTokenInBase64 =  authorizationCredentials.split(' ')[1];
+    const [auth_type,  sessionTokenInBase64 ] =  authorizationCredentials.split(' ');
+    if(auth_type !== 'Basic'){
+          return res.status(401).send({error: 'Unauthorized'});
+    }
     const [ email, password ] = Buffer.from(sessionTokenInBase64, 'base64').toString().split(':');
       try{
 
@@ -25,7 +29,7 @@ export default class AuthController{
           return res.status(401).send({error: 'Unauthorized'});
         }
         const randomTOken = uuidv4();
-        redisClientInstance.set(`auth_${randomTOken}`, email, 24 * 3600);
+        redisClientInstance.set(`auth_${randomTOken}`, existingUser._id.toString(), 24 * 3600);
         res.cookie('token', randomTOken);
         return res.status(200).json({ "token": randomTOken });
       }catch(error){
@@ -40,8 +44,8 @@ export default class AuthController{
       return res.status(401).json({error: 'Unauthorized'});
     }
     try{
-      const email = await redisClientInstance.get(`auth_${reqCookie}`);
-      const existingUser = await dbClient.client.db().collection('users').findOne({email,})
+      const id = await redisClientInstance.get(`auth_${reqCookie}`);
+      const existingUser = await dbClient.client.db().collection('users').findOne({_id: new ObjectID(id)});
       if(!existingUser){
         return res.status(401).json({error: 'Unauthorized'});
       }
@@ -50,7 +54,6 @@ export default class AuthController{
 
     }catch(err){
       return res.status(500).json({error: 'error on server side'});
-
     }
   }
 
