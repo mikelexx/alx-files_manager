@@ -16,6 +16,4 @@ export default class FilesController{
       console.log('we got a problem a tgetMe: ', error);
       return res.status(500).json({ error });
     }
-
-  }
 }

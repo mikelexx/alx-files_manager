@@ -23,9 +23,7 @@ export default class AuthController{
           return res.status(401).send({error: 'Unauthorized'});
         }
         if(SHA1(password) !== existingUser.password){
-
           console.log(`passwords dont match`);
-
           return res.status(401).send({error: 'Unauthorized'});
         }
         const randomTOken = uuidv4();
@@ -44,22 +42,16 @@ export default class AuthController{
       return res.status(401).json({error: 'Unauthorized'});
     }
     try{
-      console.log('awaiting redisClientInstance to get id from cookie key');
       const id = await redisClientInstance.get(`auth_${reqCookie}`);
-      console.log('awating redisClientInstance to find user')
       const existingUser = await dbClient.client.db().collection('users').findOne({_id: new ObjectID(id)});
       if(!existingUser){
         return res.status(401).json({error: 'Unauthorized'});
       }
-      console.log('awaiting redisClientInstance to delete use')
       await redisClientInstance.del(`auth_${reqCookie}`);
-        console.log('exiting, returning 204')
       return res.status(204).send();
 
     }catch(err){
       return res.status(500).json({error: 'error on server side'});
     }
   }
-
-
 }
