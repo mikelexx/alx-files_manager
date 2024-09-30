@@ -1,7 +1,24 @@
 import dbClient from '../utils/db';
+import redisClientInstance from '../utils/redis';
 import SHA1 from 'sha1';
 
 export default class UsersController{
+
+  static async getMe(req, res){
+    const token = req.get('X-Token');
+    try{
+      const email = await redisClientInstance.get(`auth_${token}`);
+      console.log('email from redis: ', email);
+      const existingUser = await dbClient.client.db().collection('users').findOne({'email': email});
+      if(!existingUser){
+        return res.status(401).json({error: 'Unauthorized'});
+      }
+      return res.status(200).json({email: email, id: existingUser._id});
+    }catch(error){
+      return res.status(500).json({err,});
+    }
+
+  }
 
   static async postNew(req, res){
     const email = req.body.email;
