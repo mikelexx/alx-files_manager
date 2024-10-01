@@ -13,5 +13,7 @@ router.get('/users/me', (req, res)=>UsersController.getMe(req, res));
 router.get('/files/:id', async (req, res)=>FilesController.getShow(req, res));
 router.get('/files', async (req, res)=>FilesController.getIndex(req, res));
 router.post('/files', async (req, res)=>FilesController.postUpload(req, res));
+router.put('/files/:id/publish', async (req, res)=>FilesController.putPublish(req, res));
+router.put('/files/:id/unpublish', async (req, res)=>FilesController.putUnpublish(req, res));
 
 export default router;

@@ -11,6 +11,91 @@ const mkdir = promisify(fs.mkdir);
 const writeFile = promisify(fs.writeFile);
 const FOLDER_PATH = process.env.FOLDER_PATH || '/tmp/files_manager';
 export default class FilesController{
+  static async putUnpublish(req, res){
+
+    console.log('FilesController.putUnpublish called');
+    const token = req.get('X-Token');
+    let {id} = req.params;
+
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    try {
+
+      let userId = await redisClientInstance.get(`auth_${token}`);
+
+      if(!ObjectID.isValid(id)) return res.status(401).json({error: 'Unauthorized'});
+
+      userId = new ObjectID(userId);
+      const existingUser = await dbClient.client.db().collection('users').findOne({_id: userId});
+
+      if (!existingUser) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+
+      if(!ObjectID.isValid(id)) return res.status(401).json({error: 'Not found'});
+      id = new ObjectID(id);
+      const existingUserFile = await dbClient.client.db().collection('files').findOne({_id: id});
+
+      if(!existingUserFile) return res.status(404).json({error: 'Not found'});
+
+      await dbClient.client.db().collection('files').updateOne({_id: id, userId}, { $set : {isPublic: false}});
+
+      const {_id, localPath, isPublic, ...rest} = existingUserFile;
+      return res.status(200).json({id: _id, isPublic: false, ...rest});
+
+
+    }catch(error){
+      console.log('error in FilesController.putPublish: ', error);
+      return res.status(500).json(error);
+    }
+  }
+
+
+  static async putPublish(req, res){
+
+    console.log('FilesController.putPublish called');
+    const token = req.get('X-Token');
+    let {id} = req.params;
+
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    try {
+
+      let userId = await redisClientInstance.get(`auth_${token}`);
+
+      if(!ObjectID.isValid(id)) return res.status(401).json({error: 'Unauthorized'});
+
+      userId = new ObjectID(userId);
+      const existingUser = await dbClient.client.db().collection('users').findOne({_id: userId});
+
+      if (!existingUser) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+
+      if(!ObjectID.isValid(id)) return res.status(401).json({error: 'Not found'});
+      id = new ObjectID(id);
+      const existingUserFile = await dbClient.client.db().collection('files').findOne({_id: id});
+
+      if(!existingUserFile) return res.status(404).json({error: 'Not found'});
+
+      await dbClient.client.db().collection('files').updateOne({_id: id, userId}, {$set:  {isPublic: true} });
+
+      const {_id, localPath, isPublic,  ...rest} = existingUserFile;
+      return res.status(200).json({id: _id, isPublic: true, ...rest});
+
+
+    }catch(error){
+      console.log('error in FilesController.putPublish: ', error);
+      return res.status(500).json(error);
+    }
+  }
+
   static async getIndex(req, res){
     const token = req.get('X-Token');
     const {parentId=0, page=0} = req.query;
