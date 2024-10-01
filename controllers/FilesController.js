@@ -11,6 +11,71 @@ const mkdir = promisify(fs.mkdir);
 const writeFile = promisify(fs.writeFile);
 const FOLDER_PATH = process.env.FOLDER_PATH || '/tmp/files_manager';
 export default class FilesController{
+  static async getIndex(req, res){
+    const token = req.get('X-Token');
+    const {parentId=0, page=0} = req.query;
+
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    try {
+      let userId = await redisClientInstance.get(`auth_${token}`);
+      if(!ObjectID.isValid(userId)) return res.status(401).json({error: 'Unauthorized'});
+      userId = new ObjectID(userId);
+      const existingUser = await dbClient.client.db().collection('users').findOne({ _id: userId});
+
+      if (!existingUser) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const existingUserFiles = await dbClient.client.db().collection('files').find({userId, parentId}, {limit: 20, skip: page * 20}).toArray();
+      const formattedResults = existingUserFiles.map(fileDoc=>{
+        const {_id, localPath, ...rest} = fileDoc;
+        return {id : _id, ...rest};
+      })
+      return res.status(200).json(formattedResults);
+
+    }catch(error){
+      console.log(error);
+      return res.status(500).json({error});
+    }
+  }
+
+
+  static async getShow(req, res){
+    console.log('FilesController.getShow called');
+    try {
+      const token = req.get('X-Token');
+      let {id} = req.params;
+      if (!token) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+
+      let userId = await redisClientInstance.get(`auth_${token}`);
+      if(!ObjectID.isValid(userId)) return res.status(401).json({error: 'Unauthorized'});
+      userId = new ObjectID(userId);
+      const existingUser = await dbClient.client.db().collection('users').findOne({_id: userId});
+
+      if (!existingUser) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      if(!ObjectID.isValid(id)) return res.status(404).json({error: 'Not found'});
+      id = new ObjectID(id);
+      const existingFile = await dbClient.client.db().collection('files').findOne({userId, _id: id});
+
+      if(!existingFile) return res.status(404).json({error: 'Not found'});
+      const {formattedId,localPath, ...rest} = existingFile;
+      return res.status(200).json({id: formattedId, ...rest});
+
+    }catch(error){
+      console.log(error);
+      return res.status(500).json({error});
+    }
+  }
+
   static async postUpload(req, res){
     console.log('FilesController called');
     const token = req.get('X-Token');
