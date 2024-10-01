@@ -67,8 +67,8 @@ export default class FilesController{
       const existingFile = await dbClient.client.db().collection('files').findOne({userId, _id: id});
 
       if(!existingFile) return res.status(404).json({error: 'Not found'});
-      const {formattedId,localPath, ...rest} = existingFile;
-      return res.status(200).json({id: formattedId, ...rest});
+      const {_id,localPath, ...rest} = existingFile;
+      return res.status(200).json({id: _id, ...rest});
 
     }catch(error){
       console.log(error);
