@@ -6,16 +6,18 @@ import redisClientInstance from '../utils/redis';
 import dbClient from '../utils/db';
 import { promisify } from 'util';
 
+const Queue = require('bull');
 const { ObjectID } = require('mongodb');
 const mime = require('mime-types');
 const mkdir = promisify(fs.mkdir);
 const writeFile = promisify(fs.writeFile);
 const readFile = promisify(fs.readFile);
+const fileQueue = new Queue('fileQueue');
 const FOLDER_PATH = process.env.FOLDER_PATH || '/tmp/files_manager';
 export default class FilesController{
   static async getFile(req, res){
     const token = req.get('X-Token');
-    let {id} = req.params;
+    let {id, size} = req.params;
 
     try {
       let userId = await redisClientInstance.get(`auth_${token}`);
@@ -24,12 +26,15 @@ export default class FilesController{
 
       if(!ObjectID.isValid(id)) return res.status(401).json({error: 'Not found'});
       id = new ObjectID(id);
+
       const existingUserFile = await dbClient.client.db().collection('files').findOne({_id: id});
 
       if(!existingUserFile) return res.status(404).json({error: 'Not found'});
       if(existingUserFile && existingUserFile.userId.toString() !== userId.toString() && !existingUserFile.isPublic) return res.status(404).json({error: 'Not found'});
       if(existingUserFile.type === 'folder') return res.status(400).json({error: "A folder doesn't have content"});
-      const {name, localPath} = existingUserFile;
+
+      let {name, localPath} = existingUserFile;
+      if(size) localPath = localPath + `_${size}`;
 
       if(!fs.existsSync(localPath)) return res.status(404).json({error: 'Not found'});
       const mimeType = mime.lookup(name);
@@ -241,6 +246,7 @@ export default class FilesController{
         const fileDoc = {userId, name, type, isPublic, parentId, localPath};
 
         const fileDocInsertedFeedback = await dbClient.client.db().collection('files').insertOne(fileDoc);
+        fileQueue.add('generate ImageThumbnail', {fileId: fileDocInsertedFeedback.insertedId, userId});
         return res.status(201).json({
           id: fileDocInsertedFeedback.insertedId,
           userId,
