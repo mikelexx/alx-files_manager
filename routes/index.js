@@ -10,5 +10,8 @@ router.post('/users', async (req, res)=>UsersController.postNew(req, res));
 router.get('/connect', async (req, res)=>AuthController.getConnect(req, res));
 router.get('/disconnect', async (req, res)=>AuthController.getDisconnect(req, res));
 router.get('/users/me', (req, res)=>UsersController.getMe(req, res));
+router.get('/files/:id', async (req, res)=>FilesController.getShow(req, res));
+router.get('/files', async (req, res)=>FilesController.getIndex(req, res));
 router.post('/files', async (req, res)=>FilesController.postUpload(req, res));
+
 export default router;
