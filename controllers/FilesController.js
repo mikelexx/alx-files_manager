@@ -1,6 +1,5 @@
-import fs from 'fs/promises';
+import fs from 'fs';
 import path from 'path';
-import fsSync from 'fs';
 import process from 'process';
 import {v4 as uuidv4} from 'uuid';
 import redisClientInstance from '../utils/redis';
@@ -22,7 +21,7 @@ export default class FilesController{
         return res.status(401).json({ error: 'Unauthorized' });
       }
       const userId = new ObjectID(existingUser._id);
-      let {name, type, parentId = 0, isPublic = false, data} = req.body;
+      const {name, type, parentId = 0, isPublic = false, data} = req.body;
       if(!name) return res.status(400).json({ error: 'Missing name' });
       if(!type || !['folder', 'file', 'image'].includes(type)){
         return res.status(400).json({error: 'Missing type'});
@@ -52,10 +51,10 @@ export default class FilesController{
         const base64decodedData = Buffer.from(data, 'base64');
         const localPath = path.join(FOLDER_PATH, uuidv4());
         console.log('writing file data to filesystem ...');
-        if(!fsSync.existsSync(FOLDER_PATH)){
-          fsSync.mkdirSync(FOLDER_PATH, {recursive: true});
+        if(!fs.existsSync(FOLDER_PATH)){
+          fs.mkdir(localPath, {recursive: true}, (error)=>{return req.status(500).json(error)});
         }
-        await fs.writeFile(localPath, base64decodedData);
+        fs.writeFile(localPath, base64decodedData, (error)=>{return res.status(500).json({error})});
         const fileDoc = {userId, name, type, isPublic, parentId, localPath};
         const fileDocInsertedFeedback = await dbClient.client.db().collection('files').insertOne(fileDoc);
         return res.status(201).json({
