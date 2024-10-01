@@ -29,7 +29,7 @@ export default class FilesController{
       if(!type || !['folder', 'file', 'image'].includes(type)){
         return res.status(400).json({error: 'Missing type'});
       }
-      if(!data && type !== 'folder') return res.status(400).json('Missing data');
+      if(!data && type !== 'folder') return res.status(400).json({error: 'Missing data'});
       console.log('fininshed processing req params');
 
       if(parentId){
@@ -43,7 +43,7 @@ export default class FilesController{
         console.log('inserting a folder doc into mongodb');
         const folderDocInsertedFeedback = await dbClient.client.db().collection('files').insertOne(folderDoc);
         return res.status(201).json({
-          id: folderDocInsertedFeedback.ops[0]._id,
+          id: folderDocInsertedFeedback.insertedId,
           userId,
           name,
           type,
@@ -56,14 +56,14 @@ export default class FilesController{
         const localPath = path.join(FOLDER_PATH, uuidv4());
         console.log('writing file data to filesystem ...');
 
-        await mkdir(localPath, {recursive: true}, (error)=>{return req.status(500).json(error)});
-        await writeFile(localPath, base64decodedData, (error)=>{return res.status(500).json({error})});
+        await mkdir(FOLDER_PATH, {recursive: true});
+        await writeFile(localPath, base64decodedData);
 
         const fileDoc = {userId, name, type, isPublic, parentId, localPath};
 
         const fileDocInsertedFeedback = await dbClient.client.db().collection('files').insertOne(fileDoc);
         return res.status(201).json({
-          id: fileDocInsertedFeedback.ops[0]._id,
+          id: fileDocInsertedFeedback.insertedId,
           userId,
           name,
           type,
@@ -72,7 +72,7 @@ export default class FilesController{
       }
 
     } catch (error) {
-      console.log('we got a problem a tgetMe: ', error);
+      console.log('we got a problem at postUpload func: ', error);
       return res.status(500).json({ error });
     }
   }
