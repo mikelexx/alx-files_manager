@@ -4,8 +4,11 @@ import process from 'process';
 import {v4 as uuidv4} from 'uuid';
 import redisClientInstance from '../utils/redis';
 import dbClient from '../utils/db';
+import { promisify } from 'util';
 
 const { ObjectID } = require('mongodb');
+const mkdir = promisify(fs.mkdir);
+const writeFile = promisify(fs.writeFile);
 const FOLDER_PATH = process.env.FOLDER_PATH || '/tmp/files_manager';
 export default class FilesController{
   static async postUpload(req, res){
@@ -48,14 +51,16 @@ export default class FilesController{
           parentId });
       }else{
         console.log('decoding base64 data');
+
         const base64decodedData = Buffer.from(data, 'base64');
         const localPath = path.join(FOLDER_PATH, uuidv4());
         console.log('writing file data to filesystem ...');
-        if(!fs.existsSync(FOLDER_PATH)){
-          fs.mkdir(localPath, {recursive: true}, (error)=>{return req.status(500).json(error)});
-        }
-        fs.writeFile(localPath, base64decodedData, (error)=>{return res.status(500).json({error})});
+
+        await mkdir(localPath, {recursive: true}, (error)=>{return req.status(500).json(error)});
+        await writeFile(localPath, base64decodedData, (error)=>{return res.status(500).json({error})});
+
         const fileDoc = {userId, name, type, isPublic, parentId, localPath};
+
         const fileDocInsertedFeedback = await dbClient.client.db().collection('files').insertOne(fileDoc);
         return res.status(201).json({
           id: fileDocInsertedFeedback.ops[0]._id,
