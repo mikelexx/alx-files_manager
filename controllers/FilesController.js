@@ -7,13 +7,44 @@ import dbClient from '../utils/db';
 import { promisify } from 'util';
 
 const { ObjectID } = require('mongodb');
+const mime = require('mime-types');
 const mkdir = promisify(fs.mkdir);
 const writeFile = promisify(fs.writeFile);
+const readFile = promisify(fs.readFile);
 const FOLDER_PATH = process.env.FOLDER_PATH || '/tmp/files_manager';
 export default class FilesController{
+  static async getFile(req, res){
+    const token = req.get('X-Token');
+    let {id} = req.params;
+
+    try {
+      let userId = await redisClientInstance.get(`auth_${token}`);
+      userId?userId = new ObjectID(userId): userId = '';
+
+
+      if(!ObjectID.isValid(id)) return res.status(401).json({error: 'Not found'});
+      id = new ObjectID(id);
+      const existingUserFile = await dbClient.client.db().collection('files').findOne({_id: id});
+
+      if(!existingUserFile) return res.status(404).json({error: 'Not found'});
+      if(existingUserFile && existingUserFile.userId.toString() !== userId.toString() && !existingUserFile.isPublic) return res.status(404).json({error: 'Not found'});
+      if(existingUserFile.type === 'folder') return res.status(400).json({error: "A folder doesn't have content"});
+      const {name, localPath} = existingUserFile;
+
+      if(!fs.existsSync(localPath)) return res.status(404).json({error: 'Not found'});
+      const mimeType = mime.lookup(name);
+
+      const data = await readFile(localPath);
+      return res.status(200).set('Content-Type', mimeType).send(data);
+    }catch(error){
+      console.log('Error in getFile: ', error);
+      return res.status(500).json({error});
+    }
+  }
+
   static async putUnpublish(req, res){
 
-    console.log('FilesController.putUnpublish called');
+
     const token = req.get('X-Token');
     let {id} = req.params;
 
@@ -25,8 +56,6 @@ export default class FilesController{
 
       let userId = await redisClientInstance.get(`auth_${token}`);
 
-      if(!ObjectID.isValid(id)) return res.status(401).json({error: 'Unauthorized'});
-
       userId = new ObjectID(userId);
       const existingUser = await dbClient.client.db().collection('users').findOne({_id: userId});
 
@@ -37,7 +66,7 @@ export default class FilesController{
 
       if(!ObjectID.isValid(id)) return res.status(401).json({error: 'Not found'});
       id = new ObjectID(id);
-      const existingUserFile = await dbClient.client.db().collection('files').findOne({_id: id});
+      const existingUserFile = await dbClient.client.db().collection('files').findOne({_id: id, userId});
 
       if(!existingUserFile) return res.status(404).json({error: 'Not found'});
 
@@ -68,8 +97,6 @@ export default class FilesController{
 
       let userId = await redisClientInstance.get(`auth_${token}`);
 
-      if(!ObjectID.isValid(id)) return res.status(401).json({error: 'Unauthorized'});
-
       userId = new ObjectID(userId);
       const existingUser = await dbClient.client.db().collection('users').findOne({_id: userId});
 
@@ -80,7 +107,7 @@ export default class FilesController{
 
       if(!ObjectID.isValid(id)) return res.status(401).json({error: 'Not found'});
       id = new ObjectID(id);
-      const existingUserFile = await dbClient.client.db().collection('files').findOne({_id: id});
+      const existingUserFile = await dbClient.client.db().collection('files').findOne({_id: id, userId});
 
       if(!existingUserFile) return res.status(404).json({error: 'Not found'});
 
