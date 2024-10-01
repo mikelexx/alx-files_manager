@@ -28,8 +28,9 @@ export default class FilesController{
       if (!existingUser) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
-
-      const existingUserFiles = await dbClient.client.db().collection('files').find({userId, parentId}, {limit: 20, skip: page * 20}).toArray();
+      const matchParentId = { $and: [{ parentId }] };
+      const pipeline = [{ $match: matchParentId }, { $skip: page * 20 }, { $limit: 20 }];
+      const existingUserFiles = await dbClient.client.db().collection('files').aggregate(pipeline).toArray();
       const formattedResults = existingUserFiles.map(fileDoc=>{
         const {_id, localPath, ...rest} = fileDoc;
         return {id : _id, ...rest};
